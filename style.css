@@ -1,0 +1,27 @@
+/* style.css */
+
+/* Clases específicas para el color de las filas */
+.row-egreso {
+    background-color: #fef2f2 !important; /* Rojo muy claro */
+}
+
+.row-ingreso {
+    background-color: #f0fff4 !important; /* Verde muy claro */
+}
+
+/* Scrollbar moderno para las listas */
+#lista-fijos::-webkit-scrollbar,
+#fijos-maestros-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#lista-fijos::-webkit-scrollbar-thumb,
+#fijos-maestros-container::-webkit-scrollbar-thumb {
+    background: #D1D5DB; /* Gris claro */
+    border-radius: 10px;
+}
+
+#lista-fijos::-webkit-scrollbar-track,
+#fijos-maestros-container::-webkit-scrollbar-track {
+    background: #F9FAFB;
+}

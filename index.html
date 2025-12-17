@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Inversiones Diarias</title> <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/images/icono-192.png">
+    <meta name="apple-mobile-web-app-status-bar" content="#1D4ED8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1D4ED8', // Azul Oscuro para botones principales
+                        success: '#059669', // Verde para ingresos y buen balance
+                        danger: '#EF4444',  // Rojo para egresos y balances negativos
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">
+                <span role="img" aria-label="money-bag">💰</span> Inversiones Diarias
+            </h1>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">📅 Seleccionar Período</h2>
+                    <div class="flex space-x-3">
+                        <select id="mes-filtro" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            </select>
+                        <button id="aplicar-filtro" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-150">Ver</button>
+                    </div>
+                    <button id="btn-config-fijos" class="mt-4 w-full text-sm text-gray-600 border border-gray-300 p-2 rounded-lg hover:bg-gray-100 transition duration-150">
+                        ⚙️ Configurar Montos Fijos
+                    </button>
+                    <button id="btn-administrar-fijos" class="mt-2 w-full text-sm text-gray-600 border border-gray-300 p-2 rounded-lg hover:bg-gray-100 transition duration-150">
+                        ➕ Administrar Categorías Fijas
+                    </button>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">🧾 Fijos Recurrentes</h2>
+                    <div class="space-y-2 mb-4 text-sm">
+                        <p class="flex justify-between font-medium">
+                            <span>Presupuesto Total:</span>
+                            <span id="fijos-presupuesto" class="text-primary font-bold">$0</span>
+                        </p>
+                        <p class="flex justify-between font-medium">
+                            <span>Pagado hasta ahora:</span>
+                            <span id="fijos-pagados" class="text-success font-bold">$0</span>
+                        </p>
+                        <p class="flex justify-between text-lg font-bold border-t pt-2">
+                            <span>Pendiente:</span>
+                            <span id="fijos-pendiente" class="text-danger">$0</span>
+                        </p>
+                    </div>
+
+                    <div id="lista-fijos" class="space-y-3 max-h-96 overflow-y-auto">
+                        </div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                
+                <div id="dashboard" class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">📊 Resumen del Mes (<span id="mes-actual">Cargando...</span>)</h2>
+                    
+                    <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center"> 
+                        
+                        <div class="p-2 sm:p-3 rounded-lg bg-success/10 border border-success/30">
+                            <h3 class="text-xs sm:text-sm font-medium text-gray-500">INGRESOS</h3>
+                            
+                            <strong id="total-ingresos" class="text-lg sm:text-2xl font-bold text-success hidden sm:block">$0</strong>
+                            
+                            <strong id="total-ingresos-movil" class="text-base font-bold text-success block sm:hidden">0</strong>
+                        </div>
+                        
+                        <div class="p-2 sm:p-3 rounded-lg bg-danger/10 border border-danger/30">
+                            <h3 class="text-xs sm:text-sm font-medium text-gray-500">EGRESOS</h3>
+                            
+                            <strong id="total-egresos" class="text-lg sm:text-2xl font-bold text-danger hidden sm:block">$0</strong>
+                            
+                            <strong id="total-egresos-movil" class="text-base font-bold text-danger block sm:hidden">0</strong>
+                        </div>
+                        
+                        <div class="p-2 sm:p-3 rounded-lg bg-primary/10 border border-primary/30">
+                            <h3 class="text-xs sm:text-sm font-medium text-gray-500">BALANCE</h3>
+                            
+                            <strong id="balance-final" class="text-lg sm:text-2xl font-bold text-gray-800 hidden sm:block">$0</strong>
+                            
+                            <strong id="balance-final-movil" class="text-base font-bold text-gray-800 block sm:hidden">0</strong>
+                        </div>
+                        
+                    </div>
+                    <p class="mt-4 text-xs sm:text-sm text-center">
+                        Inflación Personal (vs. Mes Anterior): <span id="ipc-valor" class="font-semibold text-gray-600">--</span>
+                    </p>
+                </div>
+                
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">✍️ Cargar Movimiento (Diario)</h2>
+                    <form id="form-movimiento" class="space-y-4">
+                        
+                        <div class="flex space-x-2">
+                            <input type="date" id="fecha" required 
+                                   class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" />
+                            <button type="button" id="btn-hoy" class="bg-gray-300 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-400 transition duration-150 text-sm">Hoy</button>
+                            <button type="button" id="btn-ayer" class="bg-gray-300 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-400 transition duration-150 text-sm">Ayer</button>
+                        </div>
+                        
+                        <select id="tipo" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value="egreso">Egreso</option>
+                            <option value="ingreso">Ingreso</option>
+                        </select>
+                        
+                        <select id="categoria" required 
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            </select>
+                        
+                        <input type="text" id="detalle" placeholder="Detalle (Opcional)" 
+                               class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" />
+                        
+                        <input type="number" step="0.01" id="monto" placeholder="Monto" required 
+                               class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" />
+                        
+                        <button type="submit" class="w-full bg-primary text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                            GUARDAR
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            
+            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">📉 Distribución de Gastos</h2>
+                    <canvas id="graficoGastos"></canvas>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">📈 Distribución de Ingresos</h2>
+                    <canvas id="graficoIngresos"></canvas>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">📋 Análisis Porcentual Detallado</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div>
+                        <h3 class="font-bold text-lg text-primary mb-3">Impacto en el Ingreso Total</h3>
+                        <div class="space-y-3">
+                            <p class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-gray-700">Gastos Fijos / Ingreso Total:</span>
+                                <span id="pct-fijos-vs-ingreso" class="font-bold text-lg text-danger">--</span>
+                            </p>
+                            <p class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-gray-700">Gastos Variables / Ingreso Total:</span>
+                                <span id="pct-variables-vs-ingreso" class="font-bold text-lg text-danger">--</span>
+                            </p>
+                            <p class="flex justify-between items-center text-sm border-t pt-3">
+                                <span class="font-medium text-gray-700">Ahorro/Remanente (Balance / Ingreso Total):</span>
+                                <span id="pct-balance-vs-ingreso" class="font-bold text-lg text-success">--</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-bold text-lg text-primary mb-3">Categorías con Mayor Peso</h3>
+                        <div id="top-gastos-variables" class="mb-4 space-y-2">
+                            <h4 class="text-md font-semibold text-gray-700">Top Variables:</h4>
+                            </div>
+                        <div id="top-gastos-fijos" class="space-y-2">
+                            <h4 class="text-md font-semibold text-gray-700">Top Fijos:</h4>
+                            </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <div class="lg:col-span-3 bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex justify-between items-center">
+                    Historial de Movimientos
+                    <input type="text" id="busqueda-movimientos" placeholder="Buscar categoría o detalle..." 
+                           class="w-1/2 sm:w-1/3 p-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary" />
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Detalle</th>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                                <th class="px-3 py-2 sm:px-4 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-movimientos" class="bg-white divide-y divide-gray-200 text-sm">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+        <div id="modal-fijos" class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full hidden z-50">
+            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900">⚙️ Configuración de Montos Fijos</h3>
+                    <button id="cerrar-modal-fijos" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Establece el monto mensual presupuestado y una nota para tus gastos fijos recurrentes.</p>
+                
+                <div id="fijos-maestros-container" class="space-y-3 max-h-96 overflow-y-auto p-1">
+                    </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button id="guardar-config-fijos" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold transition duration-150">
+                        Guardar Configuración
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="modal-admin-categorias" class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full hidden z-50">
+            <div class="relative top-10 mx-auto p-5 border w-11/12 md:w-1/2 shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900">➕ Administrar Categorías Fijas Personalizadas</h3>
+                    <button id="cerrar-modal-admin-categorias" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                
+                <p class="text-sm text-gray-600 mb-4">Añade o elimina ítems de gastos recurrentes (Ej: Spotify, Psicólogo). Una vez creados, podrás configurar su monto en el otro modal.</p>
+                
+                <form id="form-nueva-categoria" class="flex space-x-2 mb-6 p-4 border rounded-lg bg-blue-50">
+                    <input type="text" id="nombre-nueva-categoria" placeholder="Nombre de la nueva categoría (Ej: Netflix)" required 
+                           class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" />
+                    <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold transition duration-150">
+                        Añadir
+                    </button>
+                </form>
+
+                <h4 class="text-lg font-semibold text-gray-700 mb-3 border-t pt-3">Tus Categorías Fijas:</h4>
+                <div id="lista-categorias-admin" class="space-y-2 max-h-60 overflow-y-auto p-1">
+                    <p class="text-gray-500 text-center">Cargando categorías...</p>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button id="cerrar-modal-admin-categorias-footer" class="text-gray-600 hover:text-gray-800 transition duration-150">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    
+    <script type="module" src="app.js"></script>
+
+</body>
+</html>
