@@ -88,7 +88,8 @@ const formatoMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', curren
 // Variables Globales Dinámicas
 let CATEGORIAS_FIJAS_VALUES = []; 
 let categoriasFijasActuales = []; 
-let configFijosMaestro = {}; 
+let configFijosMaestro = {};
+let CATEGORIA_LABEL_MAP = {}; 
 
 
 // Referencias a elementos del DOM
@@ -286,6 +287,12 @@ async function cargarCategoriasFijas() {
     // 5. Actualizar la lista de VALUES para las validaciones (Solo Egreso Fijos)
     CATEGORIAS_FIJAS_VALUES.length = 0; 
     categoriasEgresosFijos.forEach(cat => CATEGORIAS_FIJAS_VALUES.push(cat.value));
+
+    // 6. Construir el Mapa de Búsqueda (ID/Value -> Label) <-- ¡NUEVO CÓDIGO!
+    CATEGORIA_LABEL_MAP = {};
+    [...CATEGORIAS_VARIABLES, ...categoriasEgresosFijos, ...categoriasIngreso].forEach(cat => {
+        CATEGORIA_LABEL_MAP[cat.value] = cat.label;
+    });
     
     return categoriasFijasActuales;
 }
@@ -644,34 +651,34 @@ async function cargarMovimientos(mesSeleccionado) {
         }
 
         const tr = document.createElement('tr');
-        tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
-        tr.innerHTML = `
-            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.fecha}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.tipo.toUpperCase()}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 font-semibold ${esFijo ? 'text-blue-600' : 'text-gray-800'}">
-                ${data.categoria} 
-                <span class="text-xs font-normal text-gray-400 block sm:hidden">${data.detalle}</span> 
-            </td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 hidden sm:table-cell">${data.detalle}</td> 
-            <td class="px-3 py-2 sm:px-4 sm:py-3 font-bold">${formatoMoneda.format(data.monto)}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 text-center flex justify-center space-x-2">
-                <button onclick="editarMovimiento(
-                    '${data.id}', 
-                    '${data.fecha}', 
-                    '${data.tipo}', 
-                    '${data.categoria}', 
-                    '${data.detalle.replace(/'/g, "\\'")}', 
-                    ${data.monto}
-                )"
-                class="text-primary hover:text-blue-700 font-medium transition duration-150">
-                    ✏️
-                </button>
-                <button onclick="eliminarMovimiento('${data.id}', '${data.categoria}', ${data.monto})" 
-                        class="text-danger hover:text-red-800 font-medium transition duration-150">
-                    🗑️
-                </button>
-            </td>
-        `;
+        tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
+        tr.innerHTML = `
+            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.fecha}</td>
+            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.tipo.toUpperCase()}</td>
+            <td class="px-3 py-2 sm:px-4 sm:py-3 font-semibold ${esFijo ? 'text-blue-600' : 'text-gray-800'}">
+                ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria} // <-- ¡CORRECCIÓN AQUÍ!
+                <span class="text-xs font-normal text-gray-400 block sm:hidden">${data.detalle}</span> 
+            </td>
+            <td class="px-3 py-2 sm:px-4 sm:py-3 hidden sm:table-cell">${data.detalle}</td> 
+            <td class="px-3 py-2 sm:px-4 sm:py-3 font-bold">${formatoMoneda.format(data.monto)}</td>
+            <td class="px-3 py-2 sm:px-4 sm:py-3 text-center flex justify-center space-x-2">
+                <button onclick="editarMovimiento(
+                    '${data.id}', 
+                    '${data.fecha}', 
+                    '${data.tipo}', 
+                    '${data.categoria}', 
+                    '${data.detalle.replace(/'/g, "\\'")}', 
+                    ${data.monto}
+                )"
+                class="text-primary hover:text-blue-700 font-medium transition duration-150">
+                    ✏️
+                </button>
+                <button onclick="eliminarMovimiento('${data.id}', '${data.categoria}', ${data.monto})" 
+                        class="text-danger hover:text-red-800 font-medium transition duration-150">
+                    🗑️
+                </button>
+            </td>
+        `;
         listaMovimientos.appendChild(tr);
     });
 
