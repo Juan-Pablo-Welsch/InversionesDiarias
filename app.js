@@ -650,18 +650,25 @@ async function cargarMovimientos(mesSeleccionado) {
              egresosPorCategoria[data.categoria] = (egresosPorCategoria[data.categoria] || 0) + data.monto;
         }
 
-        const tr = document.createElement('tr');
-        tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
-        tr.innerHTML = `
-            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.fecha}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.tipo.toUpperCase()}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 font-semibold ${esFijo ? 'text-blue-600' : 'text-gray-800'}">
-                ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
-            </td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 hidden sm:table-cell">${data.detalle}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 font-bold">${formatoMoneda.format(data.monto)}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 text-center">
-            <div class="flex justify-center space-x-2">
+       
+// En app.js:
+const tr = document.createElement('tr');
+tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
+tr.innerHTML = `
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left">${data.fecha}</td>
+    
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left">${data.tipo.toUpperCase()}</td>
+    
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left ${esFijo ? 'text-blue-600 font-semibold' : 'text-gray-800'}">
+        ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
+    </td>
+    
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left">${data.detalle}</td>
+    
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left font-bold">${formatoMoneda.format(data.monto)}</td>
+    
+    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-center">
+        <div class="flex justify-center space-x-2">
             <button onclick="editarMovimiento(
             '${data.id}', 
             '${data.fecha}', 
@@ -678,9 +685,10 @@ async function cargarMovimientos(mesSeleccionado) {
             class="text-danger hover:text-red-800 font-medium transition duration-150">
             🗑️
             </button>
-            </div>
-            </td>
-        `;
+        </div>
+    </td>
+`; // Fin de tr.innerHTML
+
         listaMovimientos.appendChild(tr);
     });
 
@@ -854,7 +862,7 @@ function calcularYMostrarIPC(totalActual, totalAnterior) {
 // --- GRÁFICOS ---
 function generarGraficoEgresos(egresosPorCategoria) { 
     if (myChartEgresos) { myChartEgresos.destroy(); }
-    const categorias = Object.keys(egresosPorCategoria);
+    const categorias = Object.keys(egresosPorCategoria).map(key => CATEGORIA_LABEL_MAP[key] || key);
     const montos = Object.values(egresosPorCategoria);
     const ctx = document.getElementById('graficoGastos')?.getContext('2d');
     
@@ -873,13 +881,13 @@ function generarGraficoEgresos(egresosPorCategoria) {
                 hoverOffset: 10
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } }, title: { display: false } } }
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15 } }, title: { display: false } } }
     });
 }
 
 function generarGraficoIngresos(ingresosPorCategoria) { 
     if (myChartIngresos) { myChartIngresos.destroy(); }
-    const categorias = Object.keys(ingresosPorCategoria);
+    const categorias = Object.keys(ingresosPorCategoria).map(key => CATEGORIA_LABEL_MAP[key] || key);
     const montos = Object.values(ingresosPorCategoria);
     const ctx = document.getElementById('graficoIngresos')?.getContext('2d');
     
