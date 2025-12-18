@@ -658,25 +658,28 @@ async function cargarMovimientos(mesSeleccionado) {
             <td class="px-3 py-2 sm:px-4 sm:py-3 font-semibold ${esFijo ? 'text-blue-600' : 'text-gray-800'}">
                 ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
             </td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3">${data.detalle}</td> 
+            <td class="px-3 py-2 sm:px-4 sm:py-3 hidden sm:table-cell">${data.detalle}</td>
             <td class="px-3 py-2 sm:px-4 sm:py-3 font-bold">${formatoMoneda.format(data.monto)}</td>
-            <td class="px-3 py-2 sm:px-4 sm:py-3 text-center flex justify-center space-x-2">
-                <button onclick="editarMovimiento(
-                    '${data.id}', 
-                    '${data.fecha}', 
-                    '${data.tipo}', 
-                    '${data.categoria}', 
-                    '${data.detalle.replace(/'/g, "\\'")}', 
-                    ${data.monto}
-                )"
-                class="text-primary hover:text-blue-700 font-medium transition duration-150">
-                    ✏️
-                </button>
-                <button onclick="eliminarMovimiento('${data.id}', '${data.categoria}', ${data.monto})" 
-                        class="text-danger hover:text-red-800 font-medium transition duration-150">
-                    🗑️
-                </button>
-            </td>
+            <td class="px-3 py-2 sm:px-4 sm:py-3 text-center">
+            <div class="flex justify-center space-x-2">
+            <button onclick="editarMovimiento(
+            '${data.id}', 
+            '${data.fecha}', 
+            '${data.tipo}', 
+            '${data.categoria}', 
+            '${data.detalle.replace(/'/g, "\\'")}', 
+            ${data.monto}
+            )"
+            class="text-primary hover:text-blue-700 font-medium transition duration-150">
+            ✏️
+            </button>
+
+            <button onclick="eliminarMovimiento('${data.id}', '${data.categoria}', ${data.monto})" 
+            class="text-danger hover:text-red-800 font-medium transition duration-150">
+            🗑️
+            </button>
+            </div>
+            </td>
         `;
         listaMovimientos.appendChild(tr);
     });
