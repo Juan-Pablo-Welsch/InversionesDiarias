@@ -1,4 +1,4 @@
-// app.js (VERSIÓN FINAL CORREGIDA)
+// app.js (VERSIÓN FINAL CORREGIDA Y CONSOLIDADA)
 
 import { 
     getFirestore, 
@@ -121,6 +121,110 @@ const listaCategoriasAdmin = document.getElementById('lista-categorias-admin');
 const busquedaInput = document.getElementById('busqueda-movimientos'); 
 
 
+// ===========================================
+// FUNCIONES DE UTILIDAD SWEETALERT2
+// ===========================================
+
+/**
+ * Muestra una notificación Toast (éxito, error, advertencia)
+ * @param {string} icon - 'success', 'error', 'warning', 'info', 'question'
+ * @param {string} title - El mensaje principal de la alerta
+ */
+const mostrarNotificacion = (icon, title) => {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    Toast.fire({
+        icon: icon,
+        title: title
+    });
+};
+
+/**
+ * Muestra un modal de confirmación con botones personalizados
+ * @param {string} title - Título del modal de confirmación
+ * @param {string} text - Mensaje de confirmación
+ * @param {function} callback - Función a ejecutar si el usuario confirma (presiona Sí)
+ */
+const confirmarAccion = async (title, text, callback) => {
+    const result = await Swal.fire({
+        title: title,
+        text: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#1D4ED8', // Usamos tu color primary
+        cancelButtonColor: '#EF4444',  // Usamos tu color danger
+        confirmButtonText: 'Sí, estoy seguro',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+        callback();
+    }
+};
+
+
+// ====================================================================
+// === FUNCIONES DE UTILIDAD ===
+// ====================================================================
+
+// --- LÓGICA DEL MENÚ DE 3 PUNTOS ---
+let menuAbierto = null; 
+
+function formatearFechaArgentina(fechaISO) {
+    if (!fechaISO) return '';
+    const partes = fechaISO.split('-');
+    if (partes.length === 3) {
+        return `${partes[2]}-${partes[1]}-${partes[0]}`;
+    }
+    return fechaISO;
+}
+
+// CORRECCIÓN CLAVE: Adjuntar al window para que sea global y accesible desde el onclick del tr.innerHTML
+window.mostrarMenuAcciones = function(event, id, fecha, tipo, categoria, detalle, monto) {
+    // Si hay un menú abierto, ciérralo
+    if (menuAbierto) { menuAbierto.remove(); menuAbierto = null; }
+    
+    // Crear el contenedor del menú
+    const menu = document.createElement('div');
+    // CLAVE DE VISIBILIDAD: Usar z-50 para asegurar que esté por encima de la tabla.
+    menu.className = 'absolute right-0 mt-2 w-40 bg-white rounded-md shadow-xl z-50 border border-gray-200';
+
+    // Crear botones de Editar y Eliminar
+    menu.innerHTML = `
+        <button onclick="editarMovimiento('${id}', '${fecha}', '${tipo}', '${categoria}', '${detalle.replace(/'/g, "\\'")}', ${monto}); this.parentNode.remove();"
+            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            ✏️ Editar
+        </button>
+        <button onclick="eliminarMovimiento('${id}', '${categoria}', ${monto}); this.parentNode.remove();"
+            class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+            🗑️ Eliminar
+        </button>
+    `;
+
+    // Adjuntar y establecer posición
+    const celda = event.target.closest('td');
+    celda.appendChild(menu);
+    menuAbierto = menu;
+}
+
+// Cierre global del menú al hacer clic fuera
+document.addEventListener('click', (e) => {
+    if (menuAbierto && !menuAbierto.contains(e.target) && !e.target.closest('button')) {
+        menuAbierto.remove();
+        menuAbierto = null;
+    }
+});
+
 // --- LÓGICA DE FECHA RÁPIDA ---
 
 function obtenerFechaFormateada(restaDias = 0) {
@@ -145,8 +249,9 @@ formulario.addEventListener('submit', async (e) => {
     const fecha = document.getElementById('fecha').value;
     const monto = parseFloat(document.getElementById('monto').value);
 
+    // [CORRECCIÓN 1: SweetAlert2 para validación de campos]
     if (isNaN(monto) || monto <= 0 || !fecha || !selectCategoria.value) {
-        alert("Por favor, completa la fecha, el monto y selecciona una categoría.");
+        mostrarNotificacion('warning', '¡Oops! Por favor, completa la fecha, el monto y selecciona una categoría.');
         return;
     }
 
@@ -167,14 +272,20 @@ formulario.addEventListener('submit', async (e) => {
 
             if (deviation > DEVIATION_THRESHOLD) {
                 const porcentaje = (deviation * 100).toFixed(1);
-                const confirmar = confirm(
-                    `Advertencia de Monto Fijo:\n\n` +
-                    `Estás ingresando ${formatoMoneda.format(monto)} para ${categoria}.\n` +
-                    `El presupuesto es ${formatoMoneda.format(presupuesto)}.\n` +
-                    `Desviación: ${porcentaje}%. (Máximo permitido: ${DEVIATION_THRESHOLD * 100}%).\n\n` +
-                    `¿Desea continuar con el registro de este monto? (Si es correcto, presione Aceptar)`
-                );
-                if (!confirmar) {
+                
+                // [CORRECCIÓN 2: SweetAlert2 para advertencia de desvío]
+                const result = await Swal.fire({
+                    title: '⚠️ Advertencia de Monto Fijo',
+                    html: `Estás ingresando <b>${formatoMoneda.format(monto)}</b> para <b>${CATEGORIA_LABEL_MAP[categoria]}</b>.<br><br>El presupuesto es ${formatoMoneda.format(presupuesto)}.<br>Desviación: <b>${porcentaje}%</b> (Máximo: ${DEVIATION_THRESHOLD * 100}%).<br><br>¿Desea continuar con el registro de este monto?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#1D4ED8',
+                    cancelButtonColor: '#EF4444',
+                    confirmButtonText: 'Sí, Continuar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!result.isConfirmed) {
                     return; 
                 }
             }
@@ -188,18 +299,20 @@ formulario.addEventListener('submit', async (e) => {
         detalle: document.getElementById('detalle').value.trim() || 'Sin detalle',
         monto: monto,
         mes_ref: fecha.substring(0, 7), 
-        esFijo: esFijo // Se mantiene la etiqueta 'esFijo' para filtrar si el egreso debe ir al resumen de fijos
+        esFijo: esFijo
     };
 
     try {
         if (id) {
             const docRef = doc(db, MOVIMIENTOS_COLLECTION, id);
             await updateDoc(docRef, movimientoData);
-            alert(`¡Movimiento de ${categoria} actualizado!`);
+            // [CORRECCIÓN 3: SweetAlert2 para actualización exitosa]
+            mostrarNotificacion('success', `¡Movimiento de ${CATEGORIA_LABEL_MAP[categoria] || categoria} actualizado!`);
         } else {
             movimientoData.timestamp = new Date(); 
             await addDoc(collection(db, MOVIMIENTOS_COLLECTION), movimientoData);
-            alert(`¡Movimiento de ${categoria} guardado!`);
+            // [CORRECCIÓN 3: SweetAlert2 para guardado exitoso]
+            mostrarNotificacion('success', `¡Movimiento de ${CATEGORIA_LABEL_MAP[categoria] || categoria} guardado!`);
         }
 
         // Limpiar y resetear la interfaz
@@ -215,7 +328,8 @@ formulario.addEventListener('submit', async (e) => {
 
     } catch (error) {
         console.error(`Error al ${id ? 'actualizar' : 'guardar'}: `, error);
-        alert("Ocurrió un error. Revisa la consola (F12).");
+        // [CORRECCIÓN 3: SweetAlert2 para error]
+        mostrarNotificacion('error', "Ocurrió un error al guardar/actualizar. Revisa la consola.");
     }
 });
 
@@ -243,21 +357,28 @@ window.editarMovimiento = async (id, fecha, tipo, categoria, detalle, monto) => 
     submitButton.classList.remove('bg-primary');
     submitButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
     
-    alert(`Editando: ${categoria}. Por favor, modifique los campos y presione 'ACTUALIZAR'.`);
+    // [CORRECCIÓN 4: SweetAlert2 para notificación de edición]
+    mostrarNotificacion('info', `Editando: ${CATEGORIA_LABEL_MAP[categoria] || categoria}. Modifique los campos y presione 'ACTUALIZAR'.`);
 };
 
 window.eliminarMovimiento = async (id, categoria, monto) => {
-    if (confirm(`¿Estás seguro de que quieres ELIMINAR el movimiento de ${categoria} por ${formatoMoneda.format(monto)}?`)) {
-        try {
-            await deleteDoc(doc(db, MOVIMIENTOS_COLLECTION, id));
-            alert("Movimiento eliminado correctamente.");
-            await inicializarDashboard(); 
-        } catch (error) {
-            console.error("Error al eliminar:", error);
-            alert("Error al eliminar el movimiento.");
+    // [CORRECCIÓN 5: SweetAlert2 para confirmación de eliminación de movimiento]
+    confirmarAccion(
+        `¿Estás seguro de ELIMINAR?`,
+        `Se eliminará el movimiento de ${CATEGORIA_LABEL_MAP[categoria] || categoria} por ${formatoMoneda.format(monto)}.`,
+        async () => {
+            try {
+                await deleteDoc(doc(db, MOVIMIENTOS_COLLECTION, id));
+                mostrarNotificacion('success', "Movimiento eliminado correctamente.");
+                await inicializarDashboard(); 
+            } catch (error) {
+                console.error("Error al eliminar:", error);
+                mostrarNotificacion('error', "Error al eliminar el movimiento.");
+            }
         }
-    }
+    );
 };
+
 
 // --- LÓGICA DE CATEGORÍAS FIJAS DINÁMICAS (FUNCIÓN CLAVE) ---
 
@@ -288,7 +409,7 @@ async function cargarCategoriasFijas() {
     CATEGORIAS_FIJAS_VALUES.length = 0; 
     categoriasEgresosFijos.forEach(cat => CATEGORIAS_FIJAS_VALUES.push(cat.value));
 
-    // 6. Construir el Mapa de Búsqueda (ID/Value -> Label) <-- ¡NUEVO CÓDIGO!
+    // 6. Construir el Mapa de Búsqueda (ID/Value -> Label)
     CATEGORIA_LABEL_MAP = {};
     [...CATEGORIAS_VARIABLES, ...categoriasEgresosFijos, ...categoriasIngreso].forEach(cat => {
         CATEGORIA_LABEL_MAP[cat.value] = cat.label;
@@ -327,27 +448,27 @@ async function cargarFijosMaestrosAlModal() {
         div.innerHTML = `
             <div class="flex items-center w-full sm:w-1/4">
                 <input type="checkbox"
-                       id="check-${cat.value}"
-                       data-categoria="${cat.value}"
-                       data-campo="activo"
-                       ${config.activo ? 'checked' : ''}
-                       class="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary mr-2"
+                        id="check-${cat.value}"
+                        data-categoria="${cat.value}"
+                        data-campo="activo"
+                        ${config.activo ? 'checked' : ''}
+                        class="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary mr-2"
                 />
                 <label for="check-${cat.value}" class="font-medium text-gray-700">${cat.label}:</label>
             </div>
             <input type="number" 
-                   data-categoria="${cat.value}"
-                   data-campo="monto"
-                   value="${config.monto || 0}"
-                   placeholder="Monto presupuestado"
-                   class="w-full sm:w-1/4 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                    data-categoria="${cat.value}"
+                    data-campo="monto"
+                    value="${config.monto || 0}"
+                    placeholder="Monto presupuestado"
+                    class="w-full sm:w-1/4 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
             />
             <input type="text" 
-                   data-categoria="${cat.value}"
-                   data-campo="detalle"
-                   value="${config.detalle || ''}"
-                   placeholder="Ej: Cuota 4/12 o Inactivo en verano"
-                   class="w-full sm:w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                    data-categoria="${cat.value}"
+                    data-campo="detalle"
+                    value="${config.detalle || ''}"
+                    placeholder="Ej: Cuota 4/12 o Inactivo en verano"
+                    class="w-full sm:w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
             />
         `;
         fijosMaestrosContainer.appendChild(div);
@@ -379,15 +500,16 @@ btnGuardarConfigFijos.addEventListener('click', async () => {
 
     try {
         await setDoc(doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID), nuevaConfig);
-        alert("¡Configuración de Gastos Fijos guardada!");
+        // [CORRECCIÓN 6: SweetAlert2 para guardar configuración de fijos]
+        mostrarNotificacion('success', "¡Configuración de Gastos Fijos guardada!");
         modalFijos.classList.add('hidden');
         await cargarMovimientos(selectMesFiltro.value);
     } catch (error) {
         console.error("Error al guardar configuración de fijos:", error);
-        alert("Error al guardar la configuración.");
+        // [CORRECCIÓN 6: SweetAlert2 para error]
+        mostrarNotificacion('error', "Error al guardar la configuración.");
     }
 });
-
 
 // --- LÓGICA DE ADMINISTRACIÓN DE CATEGORÍAS FIJAS PERSONALIZADAS ---
 
@@ -396,9 +518,7 @@ btnAdministrarFijos.addEventListener('click', async () => {
     modalAdminCategorias.classList.remove('hidden');
 });
 
-btnCerrarAdminCategorias.addEventListener('click', () => {
-    modalAdminCategorias.classList.add('hidden');
-});
+// Nota: btnCerrarAdminCategorias usa el ID corregido del footer del modal de admin
 
 async function cargarCategoriasAdmin() {
     await cargarCategoriasFijas(); 
@@ -449,7 +569,8 @@ formNuevaCategoria.addEventListener('submit', async (e) => {
     const nombre = document.getElementById('nombre-nueva-categoria').value.trim();
     
     if (!nombre) {
-        alert("El nombre de la categoría no puede estar vacío.");
+        // [CORRECCIÓN 7: SweetAlert2 para validación de categoría vacía]
+        mostrarNotificacion('warning', "El nombre de la categoría no puede estar vacío.");
         return;
     }
 
@@ -458,36 +579,42 @@ formNuevaCategoria.addEventListener('submit', async (e) => {
             nombre: nombre,
             fechaCreacion: new Date()
         });
-        alert(`Categoría fija "${nombre}" creada. Ahora puedes asignarle un monto en la Configuración Maestra.`);
+        // [CORRECCIÓN 7: SweetAlert2 para creación de categoría exitosa]
+        mostrarNotificacion('success', `Categoría fija "${nombre}" creada. Asigna su monto en Configuración Maestra.`);
         formNuevaCategoria.reset();
         await cargarCategoriasAdmin(); 
         await inicializarDashboard(); 
     } catch (error) {
         console.error("Error al crear categoría:", error);
-        alert("Error al crear la categoría.");
+        // [CORRECCIÓN 7: SweetAlert2 para error]
+        mostrarNotificacion('error', "Error al crear la categoría.");
     }
 });
 
 window.eliminarCategoriaFija = async (id, nombre) => {
-    if (confirm(`¿Estás seguro de que quieres ELIMINAR la categoría fija personalizada "${nombre}"? \n\n¡Advertencia! Esto NO BORRARÁ los movimientos históricos ya registrados con esa categoría.`)) {
-        try {
-            // 1. Eliminar la categoría de la colección de personalizadas
-            await deleteDoc(doc(db, CATEGORIAS_PERSONALIZADAS_COLLECTION, id));
-            
-            // 2. Eliminar su configuración maestra para que no aparezca en el modal de fijos
-            const configRef = doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID);
-            await updateDoc(configRef, { [id]: deleteField() }); 
-            
+    // [CORRECCIÓN 8: SweetAlert2 para confirmación de eliminación de categoría]
+    confirmarAccion(
+        `¿Estás seguro de ELIMINAR la categoría?`,
+        `Se eliminará la categoría fija personalizada "${nombre}". \n\n¡Advertencia! Esto NO BORRARÁ los movimientos históricos ya registrados con ella.`,
+        async () => {
+            try {
+                // 1. Eliminar la categoría de la colección de personalizadas
+                await deleteDoc(doc(db, CATEGORIAS_PERSONALIZADAS_COLLECTION, id));
+                
+                // 2. Eliminar su configuración maestra
+                const configRef = doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID);
+                await updateDoc(configRef, { [id]: deleteField() }); 
+                
+                mostrarNotificacion('success', `Categoría "${nombre}" eliminada correctamente.`);
+                await cargarCategoriasAdmin(); 
+                await inicializarDashboard(); 
 
-            alert(`Categoría "${nombre}" eliminada correctamente.`);
-            await cargarCategoriasAdmin(); 
-            await inicializarDashboard(); 
-
-        } catch (error) {
-            console.error("Error al eliminar categoría:", error);
-            alert("Error al eliminar la categoría.");
+            } catch (error) {
+                console.error("Error al eliminar categoría:", error);
+                mostrarNotificacion('error', "Error al eliminar la categoría.");
+            }
         }
-    }
+    );
 };
 
 // --- LÓGICA DE LECTURA, ANÁLISIS Y GRÁFICO ---
@@ -612,6 +739,10 @@ async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
 }
 
 
+// ====================================================================
+// === FUNCIÓN PRINCIPAL DE CARGA DE MOVIMIENTOS ===
+// ====================================================================
+
 async function cargarMovimientos(mesSeleccionado) {
     if (!mesSeleccionado) return;
     
@@ -627,7 +758,7 @@ async function cargarMovimientos(mesSeleccionado) {
     const movimientosMesAnterior = await obtenerMovimientosPorMes(mesAnteriorRef);
     
     busquedaInput.value = ''; 
-    const { totalPagadoFijo, fijosPagados } = await cargarResumenFijos(mesSeleccionado, movimientosMesActual); // AQUI SE OBTIENE EL PAGO REAL
+    const { totalPagadoFijo, fijosPagados } = await cargarResumenFijos(mesSeleccionado, movimientosMesActual);
 
     let totalIngresos = 0;
     let totalEgresosVariables = 0;
@@ -650,44 +781,44 @@ async function cargarMovimientos(mesSeleccionado) {
              egresosPorCategoria[data.categoria] = (egresosPorCategoria[data.categoria] || 0) + data.monto;
         }
 
-       
-// En app.js:
-const tr = document.createElement('tr');
-tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
-tr.innerHTML = `
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left">${data.fecha}</td>
-    
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left">${data.tipo.toUpperCase()}</td>
-    
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left ${esFijo ? 'text-blue-600 font-semibold' : 'text-gray-800'}">
-        ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
-    </td>
-    
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left">${data.detalle}</td>
-    
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left font-bold">${formatoMoneda.format(data.monto)}</td>
-    
-    <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-center">
-        <div class="flex justify-center space-x-2">
-            <button onclick="editarMovimiento(
-            '${data.id}', 
-            '${data.fecha}', 
-            '${data.tipo}', 
-            '${data.categoria}', 
-            '${data.detalle.replace(/'/g, "\\'")}', 
-            ${data.monto}
-            )"
-            class="text-primary hover:text-blue-700 font-medium transition duration-150">
-            ✏️
-            </button>
-
-            <button onclick="eliminarMovimiento('${data.id}', '${data.categoria}', ${data.monto})" 
-            class="text-danger hover:text-red-800 font-medium transition duration-150">
-            🗑️
-            </button>
-        </div>
-    </td>
-`; // Fin de tr.innerHTML
+        
+        const tr = document.createElement('tr');
+        tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
+        tr.innerHTML = `
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left">
+                ${formatearFechaArgentina(data.fecha)}
+            </td>
+            
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left">
+                ${data.tipo.toUpperCase()}
+            </td>
+            
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left ${esFijo ? 'text-blue-600 font-semibold' : 'text-gray-800'}">
+                ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
+            </td>
+            
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[20%] text-left">
+                ${data.detalle}
+            </td>
+            
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[18%] text-left font-bold">
+                ${formatoMoneda.format(data.monto)}
+            </td>
+            
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[9%] text-center relative">
+                <button onclick="mostrarMenuAcciones(event, 
+                    '${data.id}', 
+                    '${data.fecha}', 
+                    '${data.tipo}', 
+                    '${data.categoria}', 
+                    '${data.detalle.replace(/'/g, "\\'")}', 
+                    ${data.monto}
+                )" 
+                    class="text-gray-500 hover:text-gray-800 transition duration-150 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 text-lg font-bold leading-none">
+                    ⋮ 
+                </button>
+            </td>
+        `; 
 
         listaMovimientos.appendChild(tr);
     });
@@ -704,7 +835,6 @@ tr.innerHTML = `
     document.getElementById('total-ingresos').textContent = formatoMoneda.format(totalIngresos);
     document.getElementById('total-egresos').textContent = formatoMoneda.format(totalEgresos);
     document.getElementById('balance-final').textContent = formatoMoneda.format(balance);
-    // Nota: Las clases de visibilidad se definen en el HTML, aquí solo se ajustan las clases de color.
     document.getElementById('balance-final').className = `text-lg sm:text-2xl font-bold ${balance >= 0 ? 'text-success' : 'text-danger'} hidden sm:block`;
     
     // --- NUEVA ACTUALIZACIÓN DE PANTALLA MÓVIL (SIN $ Y SIN DECIMALES) ---
@@ -798,7 +928,6 @@ tr.innerHTML = `
     generarGraficoEgresos(egresosPorCategoria);
     generarGraficoIngresos(ingresosPorCategoria); 
 }
-
 
 async function obtenerMovimientosPorMes(mesRef) {
     const q = query(
@@ -917,6 +1046,9 @@ function filtrarTabla() {
     const filas = document.querySelectorAll('#lista-movimientos tr');
 
     filas.forEach(fila => {
+        // Ignorar la fila de 'Cargando datos...' si existe
+        if (fila.querySelector('td[colspan="6"]')) return; 
+
         const categoriaYDetalleText = fila.cells[2] ? fila.cells[2].textContent.toLowerCase() : '';
         const detalleDesktopText = fila.cells[3] ? fila.cells[3].textContent.toLowerCase() : '';
 
