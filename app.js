@@ -740,14 +740,15 @@ async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
 
 
 // ====================================================================
-// === FUNCIÓN PRINCIPAL DE CARGA DE MOVIMIENTOS ===
+// === FUNCIÓN PRINCIPAL DE CARGA DE MOVIMIENTOS (4 COLUMNAS PWA) ===
 // ====================================================================
 
 async function cargarMovimientos(mesSeleccionado) {
     if (!mesSeleccionado) return;
     
     const listaMovimientos = document.getElementById('lista-movimientos');
-    listaMovimientos.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center">Cargando datos...</td></tr>'; 
+    // ATENCIÓN: Colspan ajustado a 4 columnas
+    listaMovimientos.innerHTML = '<tr><td colspan="4" class="px-4 py-3 text-center">Cargando datos...</td></tr>'; 
     
     const [anio, mes] = mesSeleccionado.split('-').map(Number);
     const mesAnteriorDate = new Date(anio, mes - 2, 1);
@@ -781,10 +782,17 @@ async function cargarMovimientos(mesSeleccionado) {
              egresosPorCategoria[data.categoria] = (egresosPorCategoria[data.categoria] || 0) + data.monto;
         }
 
-        // --- INICIO DE LA MODIFICACIÓN CLAVE ---
-        const categoriaLabel = CATEGORIA_LABEL_MAP[data.categoria] || data.categoria;
+        // 1. FORMATO DE FECHA A DD/MM
+        const fechaPartes = data.fecha.split('-'); // asume YYYY-MM-DD
+        const fechaDDMM = `${fechaPartes[2]}/${fechaPartes[1]}`;
         
-        // 1. CONCATENACIÓN: Si hay detalle, se agrega entre paréntesis y en texto más pequeño.
+        // 2. ÍCONO PARA REEMPLAZAR LA COLUMNA TIPO
+        const tipoIcono = esIngreso 
+            ? '<span class="text-success inline-block ml-1 font-extrabold" title="INGRESO">▲</span>' 
+            : '<span class="text-danger inline-block ml-1 font-extrabold" title="EGRESO">▼</span>';
+            
+        // 3. CONCATENACIÓN CATEGORÍA Y DETALLE
+        const categoriaLabel = CATEGORIA_LABEL_MAP[data.categoria] || data.categoria;
         const categoriaYDetalleHTML = `
             ${categoriaLabel}
             ${data.detalle && data.detalle !== 'Sin detalle' 
@@ -795,23 +803,19 @@ async function cargarMovimientos(mesSeleccionado) {
         const tr = document.createElement('tr');
         tr.className = esIngreso ? 'row-ingreso' : 'row-egreso';
         tr.innerHTML = `
-            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left">
-                ${formatearFechaArgentina(data.fecha)}
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left font-semibold">
+                ${fechaDDMM}${tipoIcono}
             </td>
             
-            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-left">
-                ${data.tipo.toUpperCase()}
-            </td>
-            
-            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[42%] text-left ${esFijo ? 'text-blue-600 font-semibold' : 'text-gray-800'}">
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[45%] text-left ${esFijo ? 'text-blue-600 font-semibold' : 'text-gray-800'}">
                 ${categoriaYDetalleHTML}
             </td>
             
-            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[21%] text-left font-bold">
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[25%] text-left font-bold">
                 ${formatoMoneda.format(data.monto)}
             </td>
             
-            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[7%] text-center relative">
+            <td class="px-3 py-2 sm:px-4 sm:py-3 w-[15%] text-center relative">
                 <button onclick="mostrarMenuAcciones(event, 
                     '${data.id}', 
                     '${data.fecha}', 
@@ -825,17 +829,16 @@ async function cargarMovimientos(mesSeleccionado) {
                 </button>
             </td>
         `; 
-        // --- FIN DE LA MODIFICACIÓN CLAVE ---
 
         listaMovimientos.appendChild(tr);
     });
 
     if (movimientosMesActual.length === 0) {
-        // La colspan también debe ajustarse a 5 columnas
-        listaMovimientos.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center">No hay movimientos registrados para este mes.</td></tr>';
+        // Colspan ajustado a 4 columnas
+        listaMovimientos.innerHTML = '<tr><td colspan="4" class="px-4 py-3 text-center">No hay movimientos registrados para este mes.</td></tr>';
     }
 
-    // El EGRESO TOTAL SIEMPRE USA EL MONTO REAL PAGADO DE LOS FIJOS
+    // EL EGRESO TOTAL SIEMPRE USA EL MONTO REAL PAGADO DE LOS FIJOS
     const totalEgresos = totalPagadoFijo + totalEgresosVariables;
     const balance = totalIngresos - totalEgresos;
     
