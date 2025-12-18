@@ -1,5 +1,11 @@
-// app.js (VERSIÓN FINAL CORREGIDA Y CONSOLIDADA)
+// =================================================================
+// 1. IMPORTACIONES DE FIREBASE
+// =================================================================
 
+// 1A. Importación de las funciones BASE de la APP (initialize)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+// 1B. Importación de las funciones de Firestore (BD)
 import { 
     getFirestore, 
     collection, 
@@ -13,9 +19,10 @@ import {
     getDoc,
     deleteDoc, 
     updateDoc,
-    deleteField 
+    deleteField,
+    limit, // <--- Probablemente la necesitas para la consulta de vigencia
+    documentId // <--- ¡Importación corregida!
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
 // --- TUS CREDENCIALES ---
 const firebaseConfig = {
@@ -28,13 +35,21 @@ const firebaseConfig = {
 };
 // -------------------------
 
-// Inicializar Firebase y la DB
+// Inicializar Firebase y la DB (AHORA initializeApp está definida)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// =================================================================
+// 2. CONSTANTES GLOBALES (Revisión de Fijos)
+// =================================================================
 const MOVIMIENTOS_COLLECTION = "movimientos";
 const FIJOS_CONFIG_COLLECTION = "fijos_config";
-const FIJOS_CONFIG_DOC_ID = "maestro"; 
-const CATEGORIAS_PERSONALIZADAS_COLLECTION = "categorias_fijas_personalizadas"; 
+// 🚨 ¡CUIDADO! Esta constante ya NO debe usarse en las funciones de guardado o carga
+// porque ahora usamos el mes ('2025-12') como ID del documento.
+// Te sugiero eliminarla si ya no la usas, o dejarla como recordatorio.
+// const FIJOS_CONFIG_DOC_ID = "maestro"; 
+const CATEGORIAS_PERSONALIZADAS_COLLECTION = "categorias_fijas_personalizadas";
+// ... (Continúa con el resto de tu código)
 
 // --- DEFINICIÓN DE CATEGORÍAS (Base Estática) ---
 
@@ -120,6 +135,9 @@ const listaCategoriasAdmin = document.getElementById('lista-categorias-admin');
 // Búsqueda en Tabla
 const busquedaInput = document.getElementById('busqueda-movimientos'); 
 
+// Define cuántos meses futuros y pasados debe mostrar el selector de período
+const MESES_FUTUROS_PLANIFICACION = 18; 
+const MESES_PASADOS_HISTORICO = 12;
 
 // ===========================================
 // FUNCIONES DE UTILIDAD SWEETALERT2
@@ -431,9 +449,33 @@ btnCerrarModalFijos.addEventListener('click', () => {
 });
 
 async function cargarFijosMaestrosAlModal() {
-    const docRef = doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID);
-    const docSnap = await getDoc(docRef);
-    configFijosMaestro = docSnap.exists() ? docSnap.data() : {}; 
+    
+    // 1. Usamos el mes actual como referencia para encontrar la configuración MÁS RECIENTE
+    const mesVigenciaActual = selectMesFiltro.value; 
+    let configFijosMaestro = {};
+
+    // --- BÚSQUEDA DEL DOCUMENTO FIJO VIGENTE MÁS RECIENTE ---
+    // Consulta: Busca el último documento cuyo ID (YYYY-MM) sea menor o igual al mes seleccionado.
+    const q = query(
+        collection(db, FIJOS_CONFIG_COLLECTION),
+        where(documentId(), '<=', mesVigenciaActual), 
+        orderBy(documentId(), 'desc'),
+        limit(1)
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            configFijosMaestro = querySnapshot.docs[0].data();
+            console.log(`[Modal Fijos] Cargando configuración vigente desde: ${querySnapshot.docs[0].id}`);
+        } else {
+            console.log("[Modal Fijos] No se encontró configuración. Usando valores por defecto.");
+        }
+    } catch (error) {
+        console.error("Error al cargar fijos para el modal:", error);
+    }
+    // --------------------------------------------------------
 
     fijosMaestrosContainer.innerHTML = '';
 
@@ -441,10 +483,15 @@ async function cargarFijosMaestrosAlModal() {
     const egresosFijos = categoriasFijasActuales.filter(c => c.value !== 'SUELDO' && c.value !== 'SALARIO' && c.value !== 'EMPRENDIMIENTO');
 
     egresosFijos.forEach(cat => {
+        // Usa la configuración encontrada por vigencia, o valores por defecto
         const config = configFijosMaestro[cat.value] || { monto: 0, detalle: '', activo: true }; 
         
         const div = document.createElement('div');
         div.className = 'flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 p-2 border rounded-lg bg-gray-50';
+        
+        // Formateamos el monto para el input (si existe)
+        const montoDisplay = config.monto ? config.monto.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '';
+
         div.innerHTML = `
             <div class="flex items-center w-full sm:w-1/4">
                 <input type="checkbox"
@@ -459,7 +506,7 @@ async function cargarFijosMaestrosAlModal() {
             <input type="number" 
                     data-categoria="${cat.value}"
                     data-campo="monto"
-                    value="${config.monto || 0}"
+                    value="${montoDisplay}"
                     placeholder="Monto presupuestado"
                     class="w-full sm:w-1/4 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
             />
@@ -476,6 +523,9 @@ async function cargarFijosMaestrosAlModal() {
 }
 
 btnGuardarConfigFijos.addEventListener('click', async () => {
+    // 1. OBTENER EL MES SELECCIONADO PARA USARLO COMO ID DEL DOCUMENTO
+    const mesVigencia = selectMesFiltro.value; // Ejemplo: '2026-01'
+    
     const nuevaConfig = {};
     const inputs = fijosMaestrosContainer.querySelectorAll('input'); 
     
@@ -485,7 +535,9 @@ btnGuardarConfigFijos.addEventListener('click', async () => {
         let valor;
 
         if (campo === 'monto') {
-            valor = parseFloat(input.value) || 0;
+            // Quitamos cualquier símbolo o coma para asegurar el float
+            // Esto permite que el usuario ingrese '120.000' o '120,000'
+            valor = parseFloat(input.value.replace(/[$,.]/g, '')) || 0; 
         } else if (campo === 'activo') {
             valor = input.checked; 
         } else {
@@ -499,14 +551,14 @@ btnGuardarConfigFijos.addEventListener('click', async () => {
     });
 
     try {
-        await setDoc(doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID), nuevaConfig);
-        // [CORRECCIÓN 6: SweetAlert2 para guardar configuración de fijos]
-        mostrarNotificacion('success', "¡Configuración de Gastos Fijos guardada!");
+        // 2. CAMBIO CRÍTICO: El ID del documento es el MES/AÑO ('2026-01')
+        await setDoc(doc(db, FIJOS_CONFIG_COLLECTION, mesVigencia), nuevaConfig);
+        
+        mostrarNotificacion('success', `¡Configuración de Gastos Fijos guardada para ${mesVigencia}!`);
         modalFijos.classList.add('hidden');
         await cargarMovimientos(selectMesFiltro.value);
     } catch (error) {
         console.error("Error al guardar configuración de fijos:", error);
-        // [CORRECCIÓN 6: SweetAlert2 para error]
         mostrarNotificacion('error', "Error al guardar la configuración.");
     }
 });
@@ -645,9 +697,38 @@ function inicializarCategoriasDropdown() {
 
 
 async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
-    const docRef = doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID);
-    const docSnap = await getDoc(docRef);
-    configFijosMaestro = docSnap.exists() ? docSnap.data() : {}; 
+    
+    // 1. Inicializamos la variable que contendrá la configuración fija vigente.
+    let configFijosMaestro = {}; 
+
+    // --- BÚSQUEDA DEL DOCUMENTO FIJO VIGENTE PARA ESTE MES (VIGENCIA HISTÓRICA) ---
+    // Usamos el mes seleccionado para encontrar la configuración más reciente anterior o igual a ese mes.
+    const q = query(
+        collection(db, FIJOS_CONFIG_COLLECTION),
+        // Filtra los documentos cuyo ID (formato YYYY-MM) sea menor o igual al mes que estamos viendo.
+        where(documentId(), '<=', mesSeleccionado), 
+        // Ordena de forma descendente (el más reciente primero).
+        orderBy(documentId(), 'desc'),
+        // Limita a 1 solo resultado (el monto fijo más reciente vigente).
+        limit(1)
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Si encontramos una configuración, la asignamos.
+            configFijosMaestro = querySnapshot.docs[0].data();
+            console.log(`[Fijos Vigencia] Usando configuración desde: ${querySnapshot.docs[0].id}`);
+        } else {
+            // Si no hay, ya está inicializado a {}, pero dejamos el log.
+            console.log("[Fijos Vigencia] No se encontró configuración previa. Usando objeto vacío.");
+        }
+    } catch (error) {
+        console.error("Error al obtener configuración fija vigente:", error);
+        configFijosMaestro = {}; // Asegura un objeto vacío en caso de error
+    }
+    // -------------------------------------------------------------------------------------
 
     const fijosPagadosDisplay = document.getElementById('fijos-pagados');
     const fijosPresupuestoDisplay = document.getElementById('fijos-presupuesto');
@@ -690,7 +771,6 @@ async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
                 totalPresupuestoFijo += montoEstimado;
             }
             // Sumamos al total pagado REAL, independientemente del estado 'activo', si hay un movimiento
-            // La variable totalPagadoFijo se usa más abajo en el cálculo del totalEgresos del mes
             totalPagadoFijo += montoPagado; 
 
             const item = document.createElement('div');
@@ -701,20 +781,20 @@ async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
             let statusText = `${formatoMoneda.format(pendiente)} Pendiente`;
             
             if (!config.activo) {
-                 statusClass = 'text-gray-500 bg-gray-100 border-gray-300';
-                 statusText = montoPagado > 0 ? `Pagado ${formatoMoneda.format(montoPagado)} (INACTIVO)` : 'INACTIVO';
+                statusClass = 'text-gray-500 bg-gray-100 border-gray-300';
+                statusText = montoPagado > 0 ? `Pagado ${formatoMoneda.format(montoPagado)} (INACTIVO)` : 'INACTIVO';
             } else if (montoPagado >= montoEstimado && montoEstimado > 0) {
-                 statusClass = 'text-success bg-success/10 border-success';
-                 statusText = '✅ Pago Completo';
+                statusClass = 'text-success bg-success/10 border-success';
+                statusText = '✅ Pago Completo';
             } else if (montoPagado > 0 && montoPagado < montoEstimado) {
-                 statusClass = 'text-amber-600 bg-amber-100 border-amber-500';
-                 statusText = `${formatoMoneda.format(montoPagado)} pagado`;
+                statusClass = 'text-amber-600 bg-amber-100 border-amber-500';
+                statusText = `${formatoMoneda.format(montoPagado)} pagado`;
             } else if (montoEstimado === 0 && montoPagado > 0) {
                 statusClass = 'text-green-800 bg-green-200 border-green-500';
-                 statusText = '✅ Pagado (Sin Est.)';
+                statusText = '✅ Pagado (Sin Est.)';
             } else if (montoEstimado === 0) {
-                 statusClass = 'text-gray-500 bg-gray-100 border-gray-300';
-                 statusText = 'No Presupuestado';
+                statusClass = 'text-gray-500 bg-gray-100 border-gray-300';
+                statusText = 'No Presupuestado';
             }
 
             item.innerHTML = `
@@ -730,7 +810,6 @@ async function cargarResumenFijos(mesSeleccionado, movimientosMesActual) {
     });
 
     fijosPresupuestoDisplay.textContent = formatoMoneda.format(totalPresupuestoFijo);
-    // IMPORTANTE: fijosPagadosDisplay MUESTRA LA SUMA REAL de los pagos de fijos, no el presupuesto.
     fijosPagadosDisplay.textContent = formatoMoneda.format(totalPagadoFijo);
     fijosPendienteDisplay.textContent = formatoMoneda.format(totalPresupuestoFijo - totalPagadoFijo);
     
@@ -955,12 +1034,34 @@ async function obtenerMovimientosPorMes(mesRef) {
     }
 }
 
-
 function cargarOpcionesDeMes() {
+    // La variable 'selectMesFiltro' ya está definida globalmente
+    const selector = selectMesFiltro; 
+    selector.innerHTML = ''; // Limpiamos las opciones
+
     const hoy = new Date();
     let ultimoMesGuardado = "";
     
-    for (let i = 0; i < 12; i++) {
+    // --- 1. GENERAR MESES FUTUROS Y ACTUALES ---
+    // Recorre desde MESES_FUTUROS_PLANIFICACION (18) hasta el mes actual (i=0)
+    for (let i = MESES_FUTUROS_PLANIFICACION; i >= 0; i--) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+        const anio = d.getFullYear();
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const mesRef = `${anio}-${mes}`;
+        
+        const nombreMes = d.toLocaleString('es-AR', { month: 'long', year: 'numeric' });
+        const option = new Option(nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1), mesRef);
+        selector.add(option);
+        
+        if (i === 0) {
+            ultimoMesGuardado = mesRef;
+        }
+    }
+    
+    // --- 2. GENERAR MESES PASADOS (HISTORIA) ---
+    // Recorre desde el mes anterior (i=1) hasta el límite histórico (12)
+    for (let i = 1; i <= MESES_PASADOS_HISTORICO; i++) {
         const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
         const anio = d.getFullYear();
         const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -968,14 +1069,12 @@ function cargarOpcionesDeMes() {
         
         const nombreMes = d.toLocaleString('es-AR', { month: 'long', year: 'numeric' });
         const option = new Option(nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1), mesRef);
-        selectMesFiltro.add(option);
-        
-        if (i === 0) {
-            ultimoMesGuardado = mesRef;
-        }
+        selector.add(option);
     }
+
     return ultimoMesGuardado;
 }
+
 
 function calcularYMostrarIPC(totalActual, totalAnterior) {
     const ipcValorDisplay = document.getElementById('ipc-valor');
