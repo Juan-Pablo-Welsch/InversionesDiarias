@@ -657,8 +657,6 @@ async function cargarMovimientos(mesSeleccionado) {
             <td class="px-3 py-2 sm:px-4 sm:py-3">${data.tipo.toUpperCase()}</td>
             <td class="px-3 py-2 sm:px-4 sm:py-3 font-semibold ${esFijo ? 'text-blue-600' : 'text-gray-800'}">
                 ${CATEGORIA_LABEL_MAP[data.categoria] || data.categoria}
-
-                <span class="text-xs font-normal text-gray-400 block sm:hidden">${data.detalle}</span> 
             </td>
             <td class="px-3 py-2 sm:px-4 sm:py-3 hidden sm:table-cell">${data.detalle}</td> 
             <td class="px-3 py-2 sm:px-4 sm:py-3 font-bold">${formatoMoneda.format(data.monto)}</td>
