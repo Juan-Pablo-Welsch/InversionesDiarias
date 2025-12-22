@@ -112,3 +112,17 @@
         #a7bbae 80%  /* Tono Verde claro (Green 200 de Tailwind) */
     );
 }
+
+
+/* --- REGAL DE OCULTAMIENTO DEL CONTENIDO PRINCIPAL --- */
+/* Esta clase se usa para asegurar que el contenido no visible */
+/* hasta que el JS lo revele, previniendo el parpadeo del logo anterior. */
+.content-hidden {
+    display: none !important; 
+    /* Usamos !important para asegurar que sobreescriba cualquier regla de Tailwind */
+}
+
+/* La clase que usaremos en JS para mostrarlo */
+.content-visible {
+    display: block !important;
+}
