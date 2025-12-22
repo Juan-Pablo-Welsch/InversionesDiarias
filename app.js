@@ -139,6 +139,81 @@ const busquedaInput = document.getElementById('busqueda-movimientos');
 const MESES_FUTUROS_PLANIFICACION = 18; 
 const MESES_PASADOS_HISTORICO = 12;
 
+// OCULTAR SPLASH SCREEN ESTILO DISNEY
+setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if(splash) {
+        splash.style.opacity = '0';
+        splash.style.transform = 'scale(1.1)';
+        // Elimina el elemento después de la transición de 1 segundo
+        setTimeout(() => splash.remove(), 1000); 
+    }
+}, 3000); // 2500ms o el tiempo que quieras que se muestre como mínimo
+
+// Hacemos la función global para que el HTML pueda acceder a ella (onclick)
+window.toggleSensitiveData = toggleSensitiveData;
+
+// Hacemos la función global para que el HTML pueda acceder a ella (onclick)
+window.toggleSensitiveData = toggleSensitiveData; 
+
+/**
+ * Alterna el estado de visibilidad (blur) de los datos sensibles
+ * en un grupo específico (resumen o fijos).
+ * @param {string} group - 'resumen' o 'fijos'
+ */
+function toggleSensitiveData(group) {
+    const dataElements = document.querySelectorAll(`.${group}-data`);
+    const iconElement = document.getElementById(`icon-${group}`);
+
+    if (dataElements.length === 0) return;
+
+    // isRevealed será TRUE si tiene la clase 'revealed' (actualmente visible: 👁️)
+    const isRevealed = dataElements[0].classList.contains('revealed');
+
+    // 1. Alternar la clase en todos los elementos del grupo (Si está revelado, lo oculta y viceversa)
+    dataElements.forEach(element => {
+        element.classList.toggle('revealed', !isRevealed);
+    });
+
+    // 2. Cambiar el icono (USANDO OJOS Y MONO)
+    if (iconElement) {
+        if (isRevealed) {
+            // Estaba revelado (👁️) -> Ocultar (🙈)
+            iconElement.textContent = '🙈'; 
+            iconElement.title = 'Mostrar Montos';
+            // También actualizamos el icono en el botón que contiene el span
+            iconElement.parentElement.title = 'Mostrar Montos'; 
+        } else {
+            // Estaba oculto (🙈) -> Revelar (👁️)
+            iconElement.textContent = '👁️'; 
+            iconElement.title = 'Ocultar Montos';
+            iconElement.parentElement.title = 'Ocultar Montos';
+        }
+    }
+    
+    // 3. Guardar el estado en localStorage
+    localStorage.setItem(`data-revealed-${group}`, !isRevealed);
+}
+
+// Opcional: Cargar y aplicar el estado guardado al inicio de la aplicación
+document.addEventListener('DOMContentLoaded', () => {
+    // Si el estado guardado es 'true' (debe estar revelado), llamamos a toggle
+    if (localStorage.getItem('data-revealed-resumen') === 'true') {
+        toggleSensitiveData('resumen'); 
+    } else {
+         // Si por defecto debe estar oculto, actualizamos el icono a 🙈
+         const iconResumen = document.getElementById('icon-resumen');
+         if (iconResumen) iconResumen.textContent = '🙈';
+    }
+
+    if (localStorage.getItem('data-revealed-fijos') === 'true') {
+        toggleSensitiveData('fijos');
+    } else {
+         const iconFijos = document.getElementById('icon-fijos');
+         if (iconFijos) iconFijos.textContent = '🙈';
+    }
+});
+
 // ===========================================
 // FUNCIONES DE UTILIDAD SWEETALERT2
 // ===========================================
@@ -1207,6 +1282,8 @@ async function inicializarDashboard() {
 btnAplicarFiltro.addEventListener('click', () => {
     cargarMovimientos(selectMesFiltro.value);
 });
+
+
 
 
 document.addEventListener('DOMContentLoaded', inicializarDashboard);
