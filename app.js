@@ -259,7 +259,6 @@ btnAyer.addEventListener('click', () => fechaInput.value = obtenerFechaFormatead
 
 
 // --- LÓGICA DE GUARDADO (CON VALIDACIÓN DE FIJOS) ---
-
 formulario.addEventListener('submit', async (e) => {
     e.preventDefault(); 
     
@@ -279,12 +278,32 @@ formulario.addEventListener('submit', async (e) => {
     
     // VALIDACIÓN DE MONTOS FIJOS
     if (esFijo) {
-        const docRef = doc(db, FIJOS_CONFIG_COLLECTION, FIJOS_CONFIG_DOC_ID);
-        const docSnap = await getDoc(docRef);
-        configFijosMaestro = docSnap.exists() ? docSnap.data() : {}; 
+        // 💡 CORRECCIÓN CRÍTICA: Buscar la configuración vigente para la fecha del movimiento
+        const mesVigenciaMovimiento = fecha.substring(0, 7); // YYYY-MM
+        let configFijosMaestro = {};
+        let presupuesto = 0;
+
+        // BÚSQUEDA DEL DOCUMENTO FIJO VIGENTE MÁS RECIENTE ANTERIOR O IGUAL AL MES DEL MOVIMIENTO
+        const q = query(
+            collection(db, FIJOS_CONFIG_COLLECTION),
+            where(documentId(), '<=', mesVigenciaMovimiento), 
+            orderBy(documentId(), 'desc'),
+            limit(1)
+        );
+
+        try {
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                configFijosMaestro = querySnapshot.docs[0].data();
+            }
+        } catch (error) {
+            console.error("Error al buscar configuración fija para validación:", error);
+        }
+
+        // Obtener el presupuesto desde la configuración vigente
+        presupuesto = configFijosMaestro[categoria]?.monto || 0;
         
-        const presupuesto = configFijosMaestro[categoria]?.monto || 0;
-        
+        // El resto del código de validación es correcto
         if (presupuesto > 0) {
             const deviation = Math.abs(monto - presupuesto) / presupuesto;
 
