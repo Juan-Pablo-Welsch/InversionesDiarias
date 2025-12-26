@@ -1259,6 +1259,36 @@ darkModeToggle.addEventListener('change', () => {
     }
 });
 
+// Función para actualizar el color de los textos en los gráficos
+function actualizarColoresGraficos() {
+    const esDark = document.body.classList.contains('dark');
+    const colorTexto = esDark ? '#f8fafc' : '#1f2937'; // Blanco o Gris oscuro
+
+    // Configuración global de Chart.js
+    Chart.defaults.color = colorTexto;
+
+    // Si los gráficos existen, los actualizamos
+    if (myChartEgresos) {
+        myChartEgresos.options.plugins.legend.labels.color = colorTexto;
+        myChartEgresos.update();
+    }
+    if (myChartIngresos) {
+        myChartIngresos.options.plugins.legend.labels.color = colorTexto;
+        myChartIngresos.update();
+    }
+}
+
+// Modificar tu evento de toggle existente
+darkModeToggle.addEventListener('change', () => {
+    const nuevoTema = darkModeToggle.checked ? 'dark' : 'light';
+    aplicarTema(nuevoTema);
+    actualizarColoresGraficos(); // <--- LLAMADA CLAVE
+});
+
+// Llamar al cargar la página por primera vez
+actualizarColoresGraficos();
+
+
 // ====================================================================
 // 11. INICIALIZACIÓN (PUNTO DE ARRANQUE)
 // ====================================================================
