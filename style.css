@@ -296,3 +296,71 @@ body.dark {
 .dark .text-danger {
     color: #f87171 !important; /* Rojo pastel más suave */
 }
+
+/* Botones de fecha rápida en Dark Mode */
+.dark #btn-hoy, 
+.dark #btn-ayer {
+    background-color: #334155 !important; /* Slate 700 */
+    color: #f1f5f9 !important;
+    border: 1px solid #475569 !important;
+}
+
+.dark #btn-hoy:hover, 
+.dark #btn-ayer:hover {
+    background-color: #475569 !important; /* Un poco más claro al pasar el mouse */
+}
+
+/* Estados de Pago en Dark Mode */
+
+/* PENDIENTE (Rojo) */
+.dark .bg-danger\/10 {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important; /* Rojo pastel */
+}
+
+/* PAGO COMPLETO (Verde) */
+.dark .bg-success\/10 {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #34d399 !important; /* Verde pastel */
+}
+
+/* INACTIVO O NO PRESUPUESTADO (Gris) */
+.dark .bg-gray-100 {
+    background-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+
+/* Ajuste general para los contenedores de la lista de fijos */
+.dark #lista-fijos div.border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+.dark #busqueda-movimientos {
+    background-color: #1e293b !important;
+    color: white !important;
+    border-color: #334155 !important;
+}
+
+.dark #busqueda-movimientos::placeholder {
+    color: #64748b !important;
+}
+
+/* Corrección final para etiquetas de estado en Fijos Recurrentes */
+.dark #lista-fijos span.bg-danger\/10,
+.dark #lista-fijos span.text-danger {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.dark #lista-fijos span.bg-success\/10,
+.dark #lista-fijos span.text-success {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #6ee7b7 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.dark #lista-fijos .text-amber-600 {
+    color: #634701 !important; /* Ámbar más visible en oscuro */
+}
