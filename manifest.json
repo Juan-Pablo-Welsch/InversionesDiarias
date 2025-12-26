@@ -3,30 +3,34 @@
   "short_name": "Inversiones",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#f3f4f6",
-  "theme_color": "#1D4ED8",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "description": "Dashboard para el seguimiento de finanzas personales, ingresos y egresos fijos y variables.",
   "lang": "es-AR",
   "icons": [
     {
       "src": "/images/icono-96.png",
       "sizes": "96x96",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/images/icono-144.png",
       "sizes": "144x144",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/images/icono-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/images/icono-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

@@ -1,12 +1,38 @@
 /* style.css */
 
 /* Clases específicas para el color de las filas */
+/* Filas adaptativas para Modo Claro y Oscuro */
+
+/* EGRESOS */
 .row-egreso {
-    background-color: #fef2f2 !important; /* Rojo muy claro */
+    background-color: #fef2f2 !important; /* Rojo clarito en modo claro */
+    color: #1f2937; 
+}
+.dark .row-egreso {
+    background-color: rgba(239, 68, 68, 0.15) !important; /* Rojo muy oscuro y sutil en Dark */
+    color: #fca5a5 !important; /* Texto rojizo claro para que se lea */
 }
 
+/* INGRESOS */
 .row-ingreso {
-    background-color: #f0fff4 !important; /* Verde muy claro */
+    background-color: #f0fff4 !important; /* Verde clarito en modo claro */
+    color: #1f2937;
+}
+.dark .row-ingreso {
+    background-color: rgba(5, 150, 105, 0.15) !important; /* Verde muy oscuro en Dark */
+    color: #6ee7b7 !important; /* Texto verdoso claro */
+}
+
+/* Arreglo para los textos secundarios (detalles entre paréntesis) en modo oscuro */
+.dark .row-egreso span.text-gray-500, 
+.dark .row-ingreso span.text-gray-500 {
+    color: #9ca3af !important;
+}
+
+/* Color de los encabezados de la tabla en modo oscuro */
+.dark thead th {
+    color: #f8fafc !important;
+    background-color: #1e293b;
 }
 
 /* Scrollbar moderno para las listas */
@@ -163,4 +189,38 @@
     0% { transform: scale(0.85); opacity: 0.1; } 
     /* Pico del pulso */
     100% { transform: scale(1.3); opacity: 0.4; } 
+}
+
+/* Colores para el Modo Oscuro */
+body.dark {
+    background: linear-gradient(135deg, #0f172a 30%, #1e293b 80%) !important;
+    color: #f8fafc;
+}
+
+.dark .bg-white {
+    background-color: #1e293b !important;
+    color: #f8fafc;
+}
+
+.dark .text-gray-700, .dark .text-gray-800 {
+    color: #e2e8f0 !important;
+}
+
+.dark .border-gray-300 {
+    border-color: #334155 !important;
+}
+
+.dark input, .dark select {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+.dark .row-egreso td, .dark .row-ingreso td {
+    border-bottom: 1px solid #334155;
+}
+
+/* Forzar color de la categoría si es un link o tiene color azul */
+.dark .text-blue-600 {
+    color: #60a5fa !important;
 }

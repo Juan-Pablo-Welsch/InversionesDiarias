@@ -1218,6 +1218,30 @@ busquedaInput.addEventListener('keyup', filtrarTabla);
 busquedaInput.addEventListener('search', filtrarTabla); 
 
 
+const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+// 1. Verificar si ya había una preferencia guardada
+if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark');
+    darkModeToggle.checked = true;
+}
+
+// 2. Escuchar el cambio en el switch
+darkModeToggle.addEventListener('change', () => {
+    if (darkModeToggle.checked) {
+        document.body.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.body.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    }
+    
+    // Opcional: Redibujar gráficos para que se vean bien en oscuro
+    if (typeof inicializarDashboard === "function") {
+        // Esto asegura que los colores de los charts se adapten si es necesario
+    }
+});
+
 // ====================================================================
 // 11. INICIALIZACIÓN (PUNTO DE ARRANQUE)
 // ====================================================================
