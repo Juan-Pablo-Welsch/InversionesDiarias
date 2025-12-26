@@ -144,18 +144,23 @@ function ocultarSplash() {
     const content = document.getElementById('app-content'); 
 
     if (splash) {
-        // 1. Mostrar el contenido principal (quita la clase 'content-hidden' de CSS)
+        // 1. Quitamos el negro y ponemos tu degradado original
+        document.body.style.backgroundColor = 'transparent';
+        document.body.classList.add('bg-zorwel-gradient');
+        document.body.style.overflow = 'auto'; // Habilitamos scroll
+
+        // 2. Revelamos el contenido (las 321 líneas de tu HTML)
         if (content) {
             content.classList.remove('content-hidden');
         }
 
-        // 2. Aplicar la animación de desvanecimiento al Splash
-        splash.classList.add('fade-out'); 
+        // 3. Desvanecemos el splash tipo Disney
+        splash.style.opacity = '0';
+        splash.style.transition = 'opacity 0.8s ease';
 
-        // 3. Ocultar el splash completamente después de la animación
         setTimeout(() => {
             splash.style.display = 'none';
-        }, 1000); 
+        }, 800); 
     }
 }
 

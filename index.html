@@ -7,7 +7,24 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/images/icono-192.png">
     <meta name="apple-mobile-web-app-status-bar" content="#1D4ED8">
-    
+    <style>
+        html, body {
+            background-color: #020617 !important; /* Fondo negro Disney+ inmediato */
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+        }
+        #splash {
+            position: fixed; inset: 0; background: #020617 !important;
+            z-index: 9999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        #splash-logo-img {
+            width: 200px !important; height: 200px !important; 
+            border-radius: 100% !important; /* Forza logo redondo */
+            object-fit: cover;
+        }
+        .content-hidden { display: none !important; }
+    </style>
+
     <link rel="stylesheet" href="style.css"> 
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,7 +45,7 @@
         }
     </script>
 </head>
-<body class="bg-zorwel-gradient min-h-screen">>
+<body class="min-h-screen" style="background-color: #020617;">
     
     <div id="splash">
         <div class="disney-bg"></div>
