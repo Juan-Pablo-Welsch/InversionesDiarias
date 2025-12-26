@@ -1220,6 +1220,23 @@ busquedaInput.addEventListener('search', filtrarTabla);
 
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 
+function aplicarTema(tema) {
+    const htmlElement = document.documentElement; // El elemento <html>
+    const bodyElement = document.body;
+
+    if (tema === 'dark') {
+        htmlElement.classList.add('dark');
+        bodyElement.classList.add('dark');
+        darkModeToggle.checked = true;
+        localStorage.setItem('theme', 'dark');
+    } else {
+        htmlElement.classList.remove('dark');
+        bodyElement.classList.remove('dark');
+        darkModeToggle.checked = false;
+        localStorage.setItem('theme', 'light');
+    }
+}
+
 // 1. Verificar si ya había una preferencia guardada
 if (localStorage.getItem('theme') === 'dark') {
     document.body.classList.add('dark');

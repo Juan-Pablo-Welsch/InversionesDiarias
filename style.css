@@ -224,3 +224,34 @@ body.dark {
 .dark .text-blue-600 {
     color: #60a5fa !important;
 }
+
+/* SELECTORES COMBINADOS PARA MÁXIMA COMPATIBILIDAD EN MÓVIL */
+html.dark body, 
+body.dark {
+    background: #020617 !important;
+    background-image: linear-gradient(135deg, #020617 30%, #0f172a 80%) !important;
+    color: #f8fafc !important;
+}
+
+/* Tarjetas en modo oscuro forzado */
+.dark div.bg-white,
+.dark .bg-white {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Títulos y textos */
+.dark h1, .dark h2, .dark h3, .dark span:not(.text-success):not(.text-danger) {
+    color: #f8fafc !important;
+}
+
+/* Arreglo de Inputs para móviles (iOS/Android) */
+.dark input, 
+.dark select, 
+.dark textarea {
+    background-color: #0f172a !important;
+    color: white !important;
+    border: 1px solid #334155 !important;
+    appearance: none; /* Evita estilos nativos de iOS */
+}
